@@ -171,7 +171,7 @@ function getScriptDirs() { #$1: pkgpath, $2: pkgType
             scriptdirs=( $pkgpath/Contents/Resources )
             ;;
         flat_component)
-            scriptdirs=( $(getComponentPkgScriptDir $pkgpath) )
+            scriptdirs=( "$(getComponentPkgScriptDir $pkgpath)" )
             ;;
         flat_distribution*)
             getDistributionPkgScriptDirs $pkgpath
@@ -194,8 +194,7 @@ emulate -LR zsh
 
 #set -x
 
-#enable extended globbing
-setopt extendedglob
+setopt shwordsplit
 
 # load colors for nicer output
 autoload -U colors && colors
@@ -203,7 +202,7 @@ autoload -U colors && colors
 # this script's dir:
 scriptdir=$(dirname $0)
 
-typeset -A scriptdirs
+typeset -a scriptdirs
 scriptdirs=( )
 
 # scratch space
@@ -214,21 +213,36 @@ if ! mkcleandir "$scratchdir"; then
 fi
 
 # sample file
-targetdir="$scriptdir/SamplePkgs"
+targetdir=${1:-"$scriptdir/SamplePkgs"}
+if [[ ! -d $targetdir ]]; then
+    echo "argument 1 should be a directory"
+    exit 1
+fi
 
-for x in "$targetdir"/**/*.(pkg|mpkg) ; do
-    # ignore pkgs contained in mpkgs
-    if [[ ! $x == *mpkg/* ]]; then
-        t=$(pkgType "$x")
-        getScriptDirs "$x" "$t"
-        echo $bold_color$x$reset_color
-        echo "Type:          " $t
-        
-        #echo "Script Dirs:   " $scriptdirs
-        for sdir in $scriptdirs[@]; do
-            #echo $sdir
-            
+IFS=$'\n'
+for x in $(find "$targetdir" -not -ipath '*.mpkg/*' -and \( -iname '*.pkg' -or -iname '*.mpkg' \) ) ; do
+    t=$(pkgType "$x")
+    getScriptDirs "$x" "$t"
+    echo $bold_color$x$reset_color
+    echo "Type:          " $t
+    
+    #echo "Script Dirs:   " $scriptdirs
+    for sdir in $scriptdirs; do
+        #echo $sdir
+        for f in $(find "$sdir" -type f ); do
+            if [[ -e "$f" ]]; then
+                if [[ $(file "$f") == *"script text executable"* ]]; then
+                    shebang=$(head -n 1 "$f" | tr -d $'\n')
+                    lastelement=${shebang##*/}
+                    if [[ $shebang == "#!/bin/bash" || \
+                          $shebang == "#!/usr/bin/python" || \
+                          $shebang == "#!/usr/bin/ruby" || \
+                          $shebang == "#!/usr/bin/perl" ]]; then
+                        echo "$fg[yellow]$f has shebang $shebang$reset_color"
+                    fi
+                fi
+            fi
         done
-    fi
+    done
 done
 
