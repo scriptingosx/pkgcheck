@@ -66,6 +66,16 @@ function pkgType() { #1: path to pkg
     fi
 }
 
+function getPkgSignature() { # $1: pkgpath
+    local pkgpath=${1:?"no pkg path"}
+    signature=$(pkgutil --check-signature "$pkgpath" | fgrep '1. ' | cut -c 8- )
+    if [[ -z $signature ]]; then
+        signature="None"
+    fi
+    echo "$signature"
+    return
+}
+
 function getComponentPkgScriptDir() { # $1: pkgpath
     local pkgpath=${1:?"no pkg path"}
     
@@ -194,6 +204,7 @@ emulate -LR zsh
 
 #set -x
 
+# use sh behavior for word splitting
 setopt shwordsplit
 
 # load colors for nicer output
@@ -225,7 +236,7 @@ for x in $(find "$targetdir" -not -ipath '*.mpkg/*' -and \( -iname '*.pkg' -or -
     getScriptDirs "$x" "$t"
     echo $bold_color$x$reset_color
     echo "Type:          " $t
-    
+    echo "Signature:     " $(getPkgSignature "$x")
     #echo "Script Dirs:   " $scriptdirs
     for sdir in $scriptdirs; do
         #echo $sdir
@@ -244,5 +255,15 @@ for x in $(find "$targetdir" -not -ipath '*.mpkg/*' -and \( -iname '*.pkg' -or -
             fi
         done
     done
+    # add an empty line before the next pkg
+    echo
 done
+
+# todo
+# - check if pkg is signed
+# - check if pkg is notarized
+# - get pkg version when available
+# - get pkg identifier when available
+# - when arg 1 ends in pkg or mpkg use that as the only target
+
 
