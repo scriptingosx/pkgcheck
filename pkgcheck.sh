@@ -104,8 +104,61 @@ function getComponentPkgScriptDir() { # $1: pkgpath
 
 function getDistributionPkgScriptDirs() { # $1: pkgpath
     local pkgpath=${1:?"no pkg path"}
-    :
+    
+    local pkgpath=${1:?"no pkg path"}
+    
+    local pkgfullname=$(basename $pkgpath)
+    local pkgname=${pkgfullname%.*} # remove extension
+    
+    local pkgdir="$scratchdir/$pkgname"
+    local scriptdirs=()
+    
+    if ! mkcleandir $pkgdir; then
+        #echo "couldn't clean $pkgdir"
+        return 1
+    fi
+    
+    # does the pkg _have_ Scripts archives?
+    if components=( $(tar -tf "$pkgpath" '*.pkg$' 2>/dev/null) ); then
+        for c in $components ; do
+            # get the components's name
+            local cname=${c%.*} # remove extension
+            
+            # create a subdir in extractiondir
+            local extractiondir="$pkgdir/$cname"
+            if ! mkcleandir $extractiondir; then
+                #echo "couldn't clean $extractiondir"
+                return 1
+            fi
+            
+            # does the pkg _have_ a Scripts archive
+            if tar -tf "$pkgpath" "$c/Scripts" &>/dev/null; then
+                # extract the Scripts archive to scratch
+                if ! tar -x -C "$extractiondir" -f "$pkgpath" "$c/Scripts"; then
+                    #echo "error extracting Scripts Archive from $pkgpath"
+                    return 2
+                fi
+    
+                # extract the resources from the Scripts archive
+                if ! tar -x -C "$extractiondir" -f "$extractiondir/$c/Scripts"; then
+                    #echo "error extracting Scripts from $extractiondir/$c/Scripts"
+                    return 3
+                fi
+    
+                # remove the ScriptsArchive
+                rm -rf "$extractiondir/$c"
+            fi
+    
+            # return the dir with the extracted scripts
+            scriptdirs+="$extractiondir"
+        done
+    fi
+    
+    # return the dir with the extracted scripts
+    echo "${scriptdirs[@]}"
+    return
 }
+
 
 function getScriptDirs() { #$1: pkgpath, $2: pkgType
     local pkgpath=${1:?"no pkg path"}
@@ -134,10 +187,6 @@ function getScriptDirs() { #$1: pkgpath, $2: pkgType
     return
 }
 
-function checkPKG() { #1: path to pkg
-    local pkgpath=${1:?"no pkg path"}
-
-}
 
 # load colors for nicer output
 autoload -U colors && colors
