@@ -111,7 +111,8 @@ function getDistributionPkgScriptDirs() { # $1: pkgpath
     local pkgname=${pkgfullname%.*} # remove extension
     
     local pkgdir="$scratchdir/$pkgname"
-    local scriptdirs=()
+    
+    scriptdirs=( )
     
     if ! mkcleandir $pkgdir; then
         #echo "couldn't clean $pkgdir"
@@ -154,8 +155,6 @@ function getDistributionPkgScriptDirs() { # $1: pkgpath
         done
     fi
     
-    # return the dir with the extracted scripts
-    echo "${scriptdirs[@]}"
     return
 }
 
@@ -164,35 +163,48 @@ function getScriptDirs() { #$1: pkgpath, $2: pkgType
     local pkgpath=${1:?"no pkg path"}
     local pkgtype=${2:?"no pkg type"}
     
-    scriptDirs=()
-    
     case $pkgtype in
         bundle_mpkg)
-            scriptDirs=( $pkgpath/Contents/Packages/*.pkg/Contents/Resources )
+            scriptdirs=( $pkgpath/Contents/Packages/*.pkg/Contents/Resources )
             ;;
         bundle_pkg)
-            scriptDirs=( $pkgpath/Contents/Resources )
+            scriptdirs=( $pkgpath/Contents/Resources )
             ;;
         flat_component)
-            scriptDirs=( $(getComponentPkgScriptDir $pkgpath) )
+            scriptdirs=( $(getComponentPkgScriptDir $pkgpath) )
             ;;
         flat_distribution*)
-            scriptDirs=$(getDistributionPkgScriptDirs $pkgpath)
+            getDistributionPkgScriptDirs $pkgpath
             ;;
         *)
             :
             ;;
     esac
-    echo "${scriptDirs[@]}"
     return
 }
 
+function checkFile() { # $1: file path
+    local filepath=${1:?"no file path"}
+    
+    file "$filepath"
+}
+
+# reset zsh
+emulate -LR zsh
+
+#set -x
+
+#enable extended globbing
+setopt extendedglob
 
 # load colors for nicer output
 autoload -U colors && colors
 
 # this script's dir:
 scriptdir=$(dirname $0)
+
+typeset -A scriptdirs
+scriptdirs=( )
 
 # scratch space
 scratchdir="$scriptdir/scratch/"
@@ -208,11 +220,15 @@ for x in "$targetdir"/**/*.(pkg|mpkg) ; do
     # ignore pkgs contained in mpkgs
     if [[ ! $x == *mpkg/* ]]; then
         t=$(pkgType "$x")
-        scriptdirs=$(getScriptDirs "$x" "$t")
+        getScriptDirs "$x" "$t"
         echo $bold_color$x$reset_color
         echo "Type:          " $t
-        echo "Script Dirs:   " $scriptdirs
-        echo 
+        
+        #echo "Script Dirs:   " $scriptdirs
+        for sdir in $scriptdirs[@]; do
+            #echo $sdir
+            
+        done
     fi
 done
 
