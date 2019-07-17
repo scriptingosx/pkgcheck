@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-script minSpecVersion="1.000000" authoringTool="com.apple.PackageMaker" authoringToolVersion="3.0.4" authoringToolBuild="179">
+    <title>Munki - Managed software installation for OS X</title>
+    <options customize="allow" allow-external-scripts="no"/>
+    <domains enable_anywhere="true"/>
+    <choices-outline>
+        <line choice="core"/>
+        <line choice="admin"/>
+        <line choice="app"/>
+        <line choice="launchd"/>
+        
+    </choices-outline>
+    <choice id="core" title="Munki core tools" description="Core command-line tools used by munki.">
+        <pkg-ref id="com.googlecode.munki.core"/>
+    </choice>
+    <choice id="admin" title="Munki admin tools" description="Command-line munki admin tools.">
+        <pkg-ref id="com.googlecode.munki.admin"/>
+    </choice>
+    <choice id="app" title="Managed Software Update" description="Managed Software Update application.">
+        <pkg-ref id="com.googlecode.munki.app"/>
+    </choice>
+    <choice id="launchd" title="Munki launchd agents" description="Munki launch daemons and launch agents.">
+        <pkg-ref id="com.googlecode.munki.launchd"/>
+    </choice>
+    
+    <pkg-ref id="com.googlecode.munki.core" installKBytes="584" version="1.0.0.1864.0" auth="Root">file:./Contents/Packages/munkitools_core-1.0.0.1864.0.pkg</pkg-ref>
+    <pkg-ref id="com.googlecode.munki.admin" installKBytes="132" version="1.0.0.1864.0" auth="Root">file:./Contents/Packages/munkitools_admin-1.0.0.1864.0.pkg</pkg-ref>
+    <pkg-ref id="com.googlecode.munki.app" installKBytes="1520" version="3.6.0.1864" auth="Root">file:./Contents/Packages/munkitools_app-3.6.0.1864.pkg</pkg-ref>
+    <pkg-ref id="com.googlecode.munki.launchd" installKBytes="32" version="1.0.0.1864.0" auth="Root" onConclusion="RequireRestart">file:./Contents/Packages/munkitools_launchd-0.8.0.1.pkg</pkg-ref>
+    
+</installer-script>
