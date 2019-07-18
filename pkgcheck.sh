@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-# CheckInstallationScripts.zsh
+# pkgcheck.sh
 
 # this script will look into pkg files and warn if any of the installation scripts
 # use one of the following shebangs:
@@ -10,7 +10,7 @@
 # /usr/bin/perl
 # /usr/bin/ruby
 #
-# also checks for signatures and notarization
+# also checks for signatures and notarization and other information 
 
 
 function mkcleandir() { # $1: dirpath
