@@ -70,7 +70,7 @@ function getPkgSignature() { # $1: pkgpath
     local pkgpath=${1:?"no pkg path"}
     signature=$(pkgutil --check-signature "$pkgpath" | fgrep '1. ' | cut -c 8- )
     if [[ -z $signature ]]; then
-        signature="None"
+        signature="$fg[yellow]None$reset_color"
     fi
     echo "$signature"
     return
@@ -311,9 +311,20 @@ function checkComponentPKG() { # $1: pkgpath $2: level
     fi
     
     echo $indent"Type:           Flat Component PKG"
-
-    # todo: determine identifier
-    # todo: determine version
+    
+    # determine identifier and version, if present
+    pkginfo=$(tar -xOf "$pkgpath" PackageInfo 2>/dev/null )
+    if [[ $? == 0 ]]; then
+        # try to extract identifier
+        pkgidentifier=$(xmllint --xpath "string(//pkg-info/@identifier)" - <<<${pkginfo})
+        if [[ -n $pkgidentifier ]]; then
+            echo "Identifier:     $pkgidentifier"
+        fi
+        pkgversion=$(xmllint --xpath "string(//pkg-info/@version)" - <<<${pkginfo})
+        if [[ -n $pkgversion ]]; then
+            echo "Version:        $pkgversion"
+        fi
+    fi
     
     local extractiondir="$scratchdir/$pkgname"
     if ! mkcleandir $extractiondir; then
@@ -351,6 +362,20 @@ function checkDistributionPKG() { # $1: pkgpath
 
     echo "Type:           Flat Distribution PKG"
     
+    # determine identifier and version, if present
+    distributionxml=$(tar -xOf "$pkgpath" Distribution 2>/dev/null )
+    if [[ $? == 0 ]]; then
+        # distribution pkg, try to extract identifier
+        pkgidentifier=$(xmllint --xpath "string(//installer-gui-script/product/@id)" - <<<${distributionxml})
+        if [[ -n $pkgidentifier ]]; then
+            echo "Identifier:     $pkgidentifier"
+        fi
+        pkgversion=$(xmllint --xpath "string(//installer-gui-script/product/@version)" - <<<${distributionxml})
+        if [[ -n $pkgversion ]]; then
+            echo "Version:        $pkgversion"
+        fi
+    fi
+    
     local pkgdir="$scratchdir/$pkgname"
         
     if ! mkcleandir $pkgdir; then
@@ -382,6 +407,21 @@ function checkDistributionPKG() { # $1: pkgpath
             
             # todo: determine identifier
             # todo: determine version
+            # determine identifier and version, if present
+            pkginfo=$(tar -xOf "$pkgpath" "$c/PackageInfo" 2>/dev/null )
+            if [[ $? == 0 ]]; then
+                # try to extract identifier
+                pkgidentifier=$(xmllint --xpath "string(//pkg-info/@identifier)" - <<<${pkginfo})
+                if [[ -n $pkgidentifier ]]; then
+                    echo "    Identifier:     $pkgidentifier"
+                fi
+                pkgversion=$(xmllint --xpath "string(//pkg-info/@version)" - <<<${pkginfo})
+                if [[ -n $pkgversion ]]; then
+                    echo "    Version:        $pkgversion"
+                fi
+            fi
+    
+
             
             # does the pkg _have_ a Scripts archive
             if tar -tf "$pkgpath" "$c/Scripts" &>/dev/null; then
@@ -557,8 +597,8 @@ done
 # todo
 # √ check if pkg is signed
 # - check if pkg is notarized
-# - get pkg version when available
-# - get pkg identifier when available
-# - when arg 1 ends in pkg or mpkg use that as the only target
+# √ get pkg version when available
+# √ get pkg identifier when available
+# √ when arg 1 ends in pkg or mpkg use that as the only target
 
 
