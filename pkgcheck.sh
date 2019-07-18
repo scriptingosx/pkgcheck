@@ -103,7 +103,7 @@ function checkBundlePKG() { # $1: pkgpath $2: level
     if [[ level -gt 0 ]]; then
         indent="    "
         echo $indent$bold_color$pkgname$reset_color
-        echo $indent$pkgpath
+        #echo $indent$pkgpath
     else
         indent=""
     fi
@@ -325,35 +325,18 @@ function checkPkg() { # $1: pkgpath
     
     # mpkg extension : mpkg bundle type
     if [[ $pkgpath == *.mpkg ]]; then
-        type="bundle_mpkg"
         checkBundleMPKG "$pkgpath"
         return 0
-    fi
-    
-    # if it is a directory with a pkg extension it is probably a bundle pkg
-    if [[ -d $pkgpath ]]; then
-        type="bundle_pkg"
+    elif [[ -d $pkgpath ]]; then
         checkBundlePKG "$pkgpath"
-        return 0
     else
         # flat pkg, try to extract Distribution XML
         distributionxml=$(tar -xOf "$pkgpath" Distribution 2>/dev/null )
         if [[ $? == 0 ]]; then
-            # distribution pkg, try to extract identifier
-            identifier=$(xmllint --xpath "string(//installer-gui-script/product/@id)" - <<<${distributionxml})
-            if [[ $? != 0 ]]; then
-                # no identifier, normal distribution pkg
-                type="flat_distribution"
-            else
-                type="flat_distribution_productarchive"
-            fi
             checkDistributionPKG "$pkgpath"
-            return 0
         else
             # no distribution xml, likely a component pkg
-            type="flat_component"
             checkComponentPKG "$pkgpath"
-            return 0
         fi
     fi
 
