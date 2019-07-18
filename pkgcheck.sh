@@ -31,8 +31,18 @@ function getPkgSignature() { # $1: pkgpath
     if [[ -z $signature ]]; then
         signature="$fg[yellow]None$reset_color"
     fi
-    echo "$signature"
+    echo "$fg[green]$signature$reset_color"
     return
+}
+
+function getPkgNotarized() { # $1: pkgpath
+    local pkgpath=${1:?"no pkg path"}
+    
+    if stapler validate --quiet "$pkgpath"; then
+        echo "$fg[green]Yes$reset_color"
+    else
+        echo "$fg[yellow]No$reset_color"
+    fi
 }
 
 function getInfoPlistValueForKey() { # $1: pkgpath $2: key
@@ -307,6 +317,9 @@ function checkPkg() { # $1: pkgpath
     echo $bold_color$pkgname$reset_color
     echo $pkgpath
     echo "Signature:      "$(getPkgSignature "$pkgpath")
+    if [[ $devtools == "installed" ]]; then
+        echo "Notarized:      "$(getPkgNotarized "$pkgpath")
+    fi
     
     # mpkg extension : mpkg bundle type
     if [[ $pkgpath == *.mpkg ]]; then
@@ -369,6 +382,13 @@ setopt shwordsplit
 # load colors for nicer output
 autoload -U colors && colors
 
+# are the dev tools installed (this is required for the stapler tool)
+if xcode-select -p >/dev/null; then
+    devtools="installed"
+else
+    devtools="none"
+fi
+
 # this script's dir:
 scriptdir=$(dirname $0)
 
@@ -396,9 +416,11 @@ exit 0
 
 # todo
 # √ check if pkg is signed
-# - check if pkg is notarized
+# √ check if pkg is notarized
 # √ get pkg version when available
 # √ get pkg identifier when available
 # √ when arg 1 ends in pkg or mpkg use that as the only target
+# - show if components are enabled or disabled
+# - clean up code to work on flat components inside a distribution pkg
 
 
