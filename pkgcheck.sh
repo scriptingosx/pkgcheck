@@ -2,6 +2,8 @@
 
 # pkgcheck.sh
 
+# 2019 - Armin Briegel - Scripting OS X
+
 # this script will look into pkg files and warn if any of the installation scripts
 # use one of the following shebangs:
 # 
@@ -422,5 +424,6 @@ exit 0
 # √ when arg 1 ends in pkg or mpkg use that as the only target
 # - show if components are enabled or disabled
 # - clean up code to work on flat components inside a distribution pkg
+# - show install location
 
 
