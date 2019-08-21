@@ -269,8 +269,6 @@ function checkDistributionPKG() { # $1: pkgpath
             echo "    $bold_color$cname$reset_color"
             echo "    Type:           Flat Component PKG"
             
-            # todo: determine identifier
-            # todo: determine version
             # determine identifier and version, if present
             pkginfo=$(tar -xOf "$pkgpath" "$c/PackageInfo" 2>/dev/null )
             if [[ $? == 0 ]]; then
@@ -283,8 +281,11 @@ function checkDistributionPKG() { # $1: pkgpath
                 if [[ -n $pkgversion ]]; then
                     echo "    Version:        $pkgversion"
                 fi
+                pkglocation=$(xmllint --xpath "string(//pkg-info/@install-location)" - <<<${pkginfo})
+                if [[ -n $pkglocation ]]; then
+                    echo "    Location:       $pkglocation"
+                fi
             fi
-    
 
             
             # does the pkg _have_ a Scripts archive
