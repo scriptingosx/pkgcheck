@@ -68,9 +68,9 @@ function checkFilesInDir() { # $1: dirpath $2: level
         indent=""
     fi
     
-    IFS=$'\n'
-    scriptfiles=( $(find "$dirpath" -type f ) )
-    scripts_count=${#scriptfiles}
+    local foundscripts=$(find "$dirpath" -type f -print0 )
+    local scriptfiles=( ${(0)foundscripts} )
+    local scripts_count=${#scriptfiles}
     
     echo "${indent}Contains $scripts_count resource files"
     
@@ -120,6 +120,11 @@ function checkBundlePKG() { # $1: pkgpath $2: level
     pkgversion=$(getInfoPlistValueForKey "$pkgpath" "CFBundleShortVersionString")
     if [[ -n $pkgversion ]]; then
         echo $indent"Version:        $pkgversion" 
+    fi
+
+    pkglocation=$(getInfoPlistValueForKey "$pkgpath" "IFPkgFlagDefaultLocation")
+    if [[ -n $pkglocation ]]; then
+        echo $indent"Location:       $pkglocation" 
     fi
     
     # check files resources folder
@@ -178,6 +183,11 @@ function checkComponentPKG() { # $1: pkgpath $2: level
         if [[ -n $pkgversion ]]; then
             echo "Version:        $pkgversion"
         fi
+        pkglocation=$(xmllint --xpath "string(//pkg-info/@install-location)" - <<<${pkginfo})
+        if [[ -n $pkglocation ]]; then
+            echo "Location:       $pkglocation"
+        fi
+
     fi
     
     local extractiondir="$scratchdir/$pkgname"
@@ -348,10 +358,11 @@ function checkDirectory() { # $1: dirpath
     if [[ ! -d $dirpath ]]; then
         return 1
     fi
-    
-    IFS=$'\n'
+        
+    local foundpkgs=$(find "$dirpath" -not -ipath '*.mpkg/*' -and \( -iname '*.pkg' -or -iname '*.mpkg' \) -print0 )
+    local pkglist=( ${(0)foundpkgs} )
     # find all pkg and mpkgs in the directory, excluding component pkgs in mpkgs
-    for x in $(find "$dirpath" -not -ipath '*.mpkg/*' -and \( -iname '*.pkg' -or -iname '*.mpkg' \) ) ; do
+    for x in $pkglist ; do
         checkPkg "$x"
     done
 }
@@ -359,10 +370,7 @@ function checkDirectory() { # $1: dirpath
 # reset zsh
 emulate -LR zsh
 
-#set -x
-
-# use sh behavior for word splitting
-setopt shwordsplit
+# set -x
 
 # load colors for nicer output
 autoload -U colors && colors
@@ -407,6 +415,6 @@ exit 0
 # √ when arg 1 ends in pkg or mpkg use that as the only target
 # - show if components are enabled or disabled
 # - clean up code to work on flat components inside a distribution pkg
-# - show install location
+# √ show install location
 
 
