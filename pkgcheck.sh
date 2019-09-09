@@ -363,9 +363,9 @@ function checkDmg() { # $1: dmgpath
     fi
     
     # mount dmg
-    dmg_volume_path=$(hdiutil attach "$dmgpath" -noverify -nobrowse -readonly | tail -n 1 | cut -c 54- )
+    dmg_volume_path=$(echo 'Y' | hdiutil attach "$dmgpath" -noverify -nobrowse -readonly | tail -n 1 | cut -c 54- )
     
-    echo "${bold_color}Mounted $dmgpath to $dmg_volume_path${reset_color}"
+    echo "$fg[blue]Mounted $dmgpath to $dmg_volume_path${reset_color}"
     echo
     
     # check dmg
@@ -373,7 +373,7 @@ function checkDmg() { # $1: dmgpath
     
     # unmount dmg
     if hdiutil detach "$dmg_volume_path" >/dev/null ; then
-        echo "unmounted $dmg_volume_path ($dmgpath)"
+        echo "$fg[blue]unmounted $dmg_volume_path ($dmgpath)$reset_color"
     else
         echo "$fg[red]could not unmount $dmg_volume_path ($dmgpath)$reset_color"
     fi
