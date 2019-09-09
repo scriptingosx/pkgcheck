@@ -363,6 +363,7 @@ function checkDmg() { # $1: dmgpath
     fi
     
     # mount dmg
+    # piping in 'Y' on stdin to auto-approve license agreements
     dmg_volume_path=$(echo 'Y' | hdiutil attach "$dmgpath" -noverify -nobrowse -readonly | tail -n 1 | cut -c 54- )
     
     echo "$fg[blue]Mounted $dmgpath to $dmg_volume_path${reset_color}"
