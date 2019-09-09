@@ -359,6 +359,31 @@ function checkPkg() { # $1: pkgpath
 
 }
 
+function checkDmg() { # $1: dmgpath
+    local dmgpath=${1:?"no dmg path"}
+    
+    if [[ ! -f $dmgpath ]]; then
+        return 1
+    fi
+    
+    # mount dmg
+    dmg_volume_path=$(hdiutil attach "$dmgpath" -noverify -nobrowse -readonly | tail -n 1 | cut -c 54- )
+    
+    echo "${bold_color}Mounted $dmgpath to $dmg_volume_path${reset_color}"
+    echo
+    
+    # check dmg
+    checkDirectory "$dmg_volume_path"
+    
+    # unmount dmg
+    if hdiutil detach "$dmg_volume_path" >/dev/null ; then
+        echo "unmounted $dmg_volume_path ($dmgpath)"
+    else
+        echo "$fg[red]could not unmount $dmg_volume_path ($dmgpath)$reset_color"
+    fi
+    echo
+}
+
 function checkDirectory() { # $1: dirpath
     local dirpath=${1:?"no directory path"}
     
@@ -371,6 +396,13 @@ function checkDirectory() { # $1: dirpath
     # find all pkg and mpkgs in the directory, excluding component pkgs in mpkgs
     for x in $pkglist ; do
         checkPkg "$x"
+    done
+    
+    local founddmgs=$(find "$dirpath" -iname '*.dmg' -print0 )
+    local dmglist=( ${(0)founddmgs} )
+    # find all the dmgs in the directory
+    for x in $dmglist; do
+        checkDmg "$x"
     done
 }
 
@@ -403,6 +435,8 @@ for arg in "$@"; do
     arg_ext="${arg##*.}"
     if [[ $arg_ext == "pkg" || $arg_ext == "mpkg" ]]; then
         checkPkg "$arg"
+    elif [[ $arg_ext == "dmg" ]]; then
+        checkDmg "$arg"
     elif [[ -d $arg ]]; then
         checkDirectory "$arg"
     else
