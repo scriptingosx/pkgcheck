@@ -40,16 +40,12 @@ function getPkgSignature() { # $1: pkgpath
 function getPkgNotarized() { # $1: pkgpath
     local pkgpath=${1:?"no pkg path"}
     
-    if spctl --assess --type install "$pkgpath" 2>/dev/null; then
-        notary_signature=$(spctl --assess -vvv --type install "$pkgpath" 2>&1 \
-                           | awk -F '=' '/origin/ { print $2 }')
-        if [[ -z $notary_signature ]]; then
-            echo "$fg[yellow]accepted$reset_color"
-        else
-            echo "$fg[green]$notary_signature$reset_color"
-        fi
+    notary_source=$(spctl --assess -vvv --type install $pkgpath 2>&1 | awk -F '=' '/source/ { print $2 }')
+
+    if [[ $notary_source == "Notarized Developer ID" ]]; then
+        echo "$fg[green]Yes, $notary_source$reset_color"
     else
-        echo "$fg[yellow]No$reset_color"
+        echo "$fg[yellow]No${notary_source:+, $notary_source}$reset_color"
     fi
 }
 
