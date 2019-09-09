@@ -40,8 +40,14 @@ function getPkgSignature() { # $1: pkgpath
 function getPkgNotarized() { # $1: pkgpath
     local pkgpath=${1:?"no pkg path"}
     
-    if stapler validate --quiet "$pkgpath"; then
-        echo "$fg[green]Yes$reset_color"
+    if spctl --assess --type install "$pkgpath" 2>/dev/null; then
+        notary_signature=$(spctl --assess -vvv --type install "$pkgpath" 2>&1 \
+                           | awk -F '=' '/origin/ { print $2 }')
+        if [[ -z $notary_signature ]]; then
+            echo "$fg[yellow]accepted$reset_color"
+        else
+            echo "$fg[green]$notary_signature$reset_color"
+        fi
     else
         echo "$fg[yellow]No$reset_color"
     fi
@@ -417,5 +423,6 @@ exit 0
 # - show if components are enabled or disabled
 # - clean up code to work on flat components inside a distribution pkg
 # √ show install location
+# - mount dmg files and inspect pkgs inside
 
 
