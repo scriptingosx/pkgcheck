@@ -173,52 +173,41 @@ function checkComponentPKG() { # $1: pkgpath $2: level
     
     echo $indent"Type:           Flat Component PKG"
     
+    # expand the flat pkg
+    local pkgdir="$scratchdir/$pkgname"
+        
+    if [[ -d "$pkgdir" ]] ; then
+        rm -r "$pkgdir" || return 1
+    fi
+    pkgutil --expand "$pkgpath" "$pkgdir"
+    
     # determine identifier and version, if present
-    pkginfo=$(tar -xOf "$pkgpath" PackageInfo 2>/dev/null )
-    if [[ $? == 0 ]]; then
+    pkginfo="$pkgdir/PackageInfo"
+    if [[ -f "$pkginfo" ]]; then
         # try to extract identifier
-        pkgidentifier=$(xmllint --xpath "string(//pkg-info/@identifier)" - <<<${pkginfo})
+        pkgidentifier=$(xmllint --xpath "string(//pkg-info/@identifier)" ${pkginfo})
         if [[ -n $pkgidentifier ]]; then
             echo "Identifier:     $pkgidentifier"
         fi
-        pkgversion=$(xmllint --xpath "string(//pkg-info/@version)" - <<<${pkginfo})
+        pkgversion=$(xmllint --xpath "string(//pkg-info/@version)" ${pkginfo})
         if [[ -n $pkgversion ]]; then
             echo "Version:        $pkgversion"
         fi
-        pkglocation=$(xmllint --xpath "string(//pkg-info/@install-location)" - <<<${pkginfo})
+        pkglocation=$(xmllint --xpath "string(//pkg-info/@install-location)" ${pkginfo})
         if [[ -n $pkglocation ]]; then
             echo "Location:       $pkglocation"
         fi
 
     fi
-    
-    local extractiondir="$scratchdir/$pkgname"
-    if ! mkcleandir $extractiondir; then
-        #echo "couldn't clean $extractiondir"
-        return 1
+
+    # does the pkg have a Scripts dir?
+    if [[ -d "$pkgdir/Scripts" ]] ; then
+        checkFilesInDir "$pkgdir/Scripts" "$level"
     fi
-    
-    # does the pkg _have_ a Scripts archive
-    if tar -tf "$pkgpath" Scripts &>/dev/null; then
-        # extract the Scripts archive to scratch
-        if ! tar -x -C "$extractiondir" -f "$pkgpath" Scripts; then
-            #echo "error extracting Scripts Archive from $pkgpath"
-            return 2
-        fi
-    
-        # extract the resources from the Scripts archive
-        if ! tar -x -C "$extractiondir" -f "$extractiondir/Scripts"; then
-            #echo "error extracting Scripts from $extractiondir/Scripts"
-            return 3
-        fi
-    
-        # remove the ScriptsArchive
-        rm "$extractiondir/Scripts"
-    fi
-    
-    checkFilesInDir "$extractiondir" "$level"
     
     echo
+    # clean up
+    rm -rf "$pkgdir"
 }
 
 function checkDistributionPKG() { # $1: pkgpath
@@ -228,91 +217,68 @@ function checkDistributionPKG() { # $1: pkgpath
 
     echo "Type:           Flat Distribution PKG"
     
+    # expand the flat pkg
+    local pkgdir="$scratchdir/$pkgname"
+        
+    if [[ -d "$pkgdir" ]] ; then
+        rm -r "$pkgdir" || return 1
+    fi
+    pkgutil --expand "$pkgpath" "$pkgdir"
+    
     # determine identifier and version, if present
-    distributionxml=$(tar -xOf "$pkgpath" Distribution 2>/dev/null )
-    if [[ $? == 0 ]]; then
+    distributionxml="$pkgdir/Distribution"
+    if [[ -f "$distributionxml" ]]; then
         # distribution pkg, try to extract identifier
-        pkgidentifier=$(xmllint --xpath "string(//installer-gui-script/product/@id)" - <<<${distributionxml})
+        pkgidentifier=$(xmllint --xpath "string(//installer-gui-script/product/@id)" ${distributionxml})
         if [[ -n $pkgidentifier ]]; then
             echo "Identifier:     $pkgidentifier"
         fi
-        pkgversion=$(xmllint --xpath "string(//installer-gui-script/product/@version)" - <<<${distributionxml})
+        pkgversion=$(xmllint --xpath "string(//installer-gui-script/product/@version)" ${distributionxml})
         if [[ -n $pkgversion ]]; then
             echo "Version:        $pkgversion"
         fi
     fi
-    
-    local pkgdir="$scratchdir/$pkgname"
-        
-    if ! mkcleandir $pkgdir; then
-        #echo "couldn't clean $pkgdir"
-        return 1
-    fi
-    
-    # does the pkg _have_ Scripts archives?
+
+    # find component pkgs
     IFS=$'\n'
-    components=( $(tar -tf "$pkgpath" '*.pkg$' 2>/dev/null) )
+    components=($(ls -d1 "$pkgdir"/*.pkg))
     components_count=${#components}
     echo "Contains ${#components} component pkgs"
     echo
 
     if [[ $components_count -gt 0 ]]; then
         for c in $components ; do
-            # get the components's name
-            local cname=${c%.*} # remove extension
-            
-            # create a subdir in extractiondir
-            local extractiondir="$pkgdir/$cname"
-            if ! mkcleandir "$extractiondir"; then
-                #echo "couldn't clean $extractiondir"
-                return 1
-            fi
-            
             echo "    $bold_color$cname$reset_color"
             echo "    Type:           Flat Component PKG"
             
             # determine identifier and version, if present
-            pkginfo=$(tar -xOf "$pkgpath" "$c/PackageInfo" 2>/dev/null )
-            if [[ $? == 0 ]]; then
+            pkginfo="$c/PackageInfo"
+            if [[ -f "$pkginfo" ]]; then
                 # try to extract identifier
-                pkgidentifier=$(xmllint --xpath "string(//pkg-info/@identifier)" - <<<${pkginfo})
+                pkgidentifier=$(xmllint --xpath "string(//pkg-info/@identifier)" "${pkginfo}")
                 if [[ -n $pkgidentifier ]]; then
                     echo "    Identifier:     $pkgidentifier"
                 fi
-                pkgversion=$(xmllint --xpath "string(//pkg-info/@version)" - <<<${pkginfo})
+                pkgversion=$(xmllint --xpath "string(//pkg-info/@version)" "${pkginfo}")
                 if [[ -n $pkgversion ]]; then
                     echo "    Version:        $pkgversion"
                 fi
-                pkglocation=$(xmllint --xpath "string(//pkg-info/@install-location)" - <<<${pkginfo})
+                pkglocation=$(xmllint --xpath "string(//pkg-info/@install-location)" "${pkginfo}")
                 if [[ -n $pkglocation ]]; then
                     echo "    Location:       $pkglocation"
                 fi
             fi
 
             
-            # does the pkg _have_ a Scripts archive
-            if tar -tf "$pkgpath" "$c/Scripts" &>/dev/null; then
-                # extract the Scripts archive to scratch
-                if ! tar -x -C "$extractiondir" -f "$pkgpath" "$c/Scripts"; then
-                    #echo "error extracting Scripts Archive from $pkgpath"
-                    return 2
-                fi
-    
-                # extract the resources from the Scripts archive
-                if ! tar -x -C "$extractiondir" -f "$extractiondir/$c/Scripts"; then
-                    #echo "error extracting Scripts from $extractiondir/$c/Scripts"
-                    return 3
-                fi
-    
-                # remove the ScriptsArchive
-                rm -rf "$extractiondir/$c"
+            # does the pkg have a Scripts directory?
+            if [[ -d "$c/Scripts" ]] ; then
+                checkFilesInDir "$c/Scripts" 1
             fi
-    
-            # check the extracted scripts
-            checkFilesInDir "$extractiondir" 1
             echo
         done
     fi
+    # clean up
+    rm -rf "$pkgdir"
 }
 
 function checkPkg() { # $1: pkgpath
@@ -343,8 +309,8 @@ function checkPkg() { # $1: pkgpath
     elif [[ -d $pkgpath ]]; then
         checkBundlePKG "$pkgpath"
     else
-        # flat pkg, try to extract Distribution XML
-        distributionxml=$(tar -xOf "$pkgpath" Distribution 2>/dev/null )
+        # flat pkg, look for Distribution
+        distribution=$(xar -tf "$pkgpath" | grep Distribution 2>/dev/null )
         if [[ $? == 0 ]]; then
             checkDistributionPKG "$pkgpath"
         else
