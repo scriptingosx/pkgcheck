@@ -83,13 +83,28 @@ function checkFilesInDir() { # $1: dirpath $2: level
             file_description="$(file -b "$f")"
             #echo "$indent$file_description"
             if [[ "$file_description" == *"script text executable"* ]]; then
+                
+                # check for deprecated shebangs
                 shebang=$(head -n 1 "$f" | tr -d $'\n')
                 lastelement=${shebang##*/}
                 if [[ $shebang == "#!/bin/bash" || \
-                      $shebang == "#!/usr/bin/python" || \
+                      $shebang == "#!/usr/bin/env bash" || \
                       $shebang == "#!/usr/bin/ruby" || \
-                      $shebang == "#!/usr/bin/perl" ]]; then
+                      $shebang == "#!/usr/bin/env ruby" || \
+                      $shebang == "#!/usr/bin/perl" || \
+                      $shebang == "#!/usr/bin/env perl" ]]; then
                     echo "$indent$fg[yellow]$relpath has shebang $shebang$reset_color"
+                fi
+                
+                # python gets extra treatment since it will break in macOS 12.3+
+                if [[ $shebang == "#!/usr/bin/python" || \
+                      $shebang == "#!/usr/bin/env python" ]]; then
+                    echo "$indent$fg[red]$relpath has shebang $shebang$reset_color"
+                fi
+
+                # check for uses of 'python' in code
+                if grep --invert-match '^#' "$f" | grep --quiet 'python'; then
+                    echo "$indent$fg[red]$relpath calls 'python' in code$reset_color"
                 fi
             fi
         fi
