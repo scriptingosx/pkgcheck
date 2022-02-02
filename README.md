@@ -1,16 +1,18 @@
 # Check Installer Pkgs for deprecated scripts
 
-macOS 10.15 Catalina [will deprecate the built-in `/bin/bash`](https://support.apple.com/en-us/HT208050). [I have talked about this at length](https://scriptingosx.com/2019/06/moving-to-zsh/).
+macOS 10.15 Catalina [deprecated the built-in `/bin/bash`](https://support.apple.com/en-us/HT208050). [I have talked about this at length](https://scriptingosx.com/2019/06/moving-to-zsh/).
 
 The [release notes for Catalina](https://developer.apple.com/documentation/macos_release_notes/macos_catalina_10_15_beta_6_release_notes) also tell us that other built-in scripting runtimes, namely Python, Perl, and Ruby. Will not be included in future macOS releases (post-Catalina) any more.
+
+[Starting with macOS 12.3](https://developer.apple.com/documentation/macos-release-notes/macos-12_3-release-notes), the Python 2.7 binary `/usr/bin/python` will _not_ work anymore. Calls to `python` will fail.
 
 This means, that if you want to use bash, Python, Perl, or Ruby on macOS, you will have to install, and maintain your own version in the future.
 
 However, scripts in installation packages, _cannot_ rely on any of these interpreters being available in future, post-Catalina versions of macOS. Installer pkgs can be run in all kinds of environments and at all times, and you would not want them to fail, because a dependency is missing.
 
-The good news is that we still have time. All the runtimes mentioned above are still present in Catalina, so the packages will continue to work for now. But if you are building installation scripts, you need to check if any of the installation scripts use one of these interpreters and fix them.
+If you are building installation scripts, you need to check if any of the installation scripts use one of these interpreters and fix them.
 
-> I recommend to use `/bin/sh` for installation scripts, since that will run in _any_ macOS context, even the Recovery system.
+> I recommend to use `/bin/sh` for installation scripts, since that will run in _any_ macOS context, even the Recovery system and a 'future' macOS that may not have `/bin/bash` 
 
 If you are using third-party installer packages, you may also want to check them for these interpreters, and notify the developer that these packages will break in future versions of macOS.
 
@@ -27,7 +29,9 @@ Once I had written the code to inspect all these types of pkgs, I realized I cou
 - Identifier and version (when present)
 - Install-location
 - for Distribution and mpkg types, shows the information for all components as well
-- for every script in a pkg or component, checks the first line of the script for shebangs of the deprecated interpreters (`/bin/bash`, `/usr/bin/python`, `/usr/bin/perl`, and `/usr/bin/ruby`) and print a warning when found
+- for every script in a pkg or component, checks the first line of the script for shebangs of the deprecated interpreters (`/bin/bash`, `/usr/bin/python`, `/usr/bin/perl`, and `/usr/bin/ruby`, also using these binaries with `/usr/bin/env`) and print a warning when found
+- `/usr/bin/python` and `/usr/bin/env python` will show an error
+- if the script contains the string `python` (that is not in a comment line) it will also show an error, this might generate some false positives (for example, calls to `python3` will also trigger this, but they would probably be problematic, as well)
 
 ## How to run pkgcheck.sh
 
