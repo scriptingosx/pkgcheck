@@ -18,7 +18,7 @@ If you are using third-party installer packages, you may also want to check them
 
 To check a flat installer package, you would expand it with `pkgutil --expand` and then look at script files in the `Scripts` folder. This will work fine for a package or two, but gets tedious really quickly, especially with large distribution pkgs with many components (e.g. Office).
 
-So... I wrote a script to do it. The script should handle normal component pkgs, distribution pkgs and the legacy bundle pkgs and mpkgs.
+So... I wrote a script to do it. The script should handle normal component pkgs, distribution pkgs and the legacy bundle pkgs and mpkgs. It will also 
 
 ## What the script does
 

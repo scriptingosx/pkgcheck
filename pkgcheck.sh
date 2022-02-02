@@ -369,7 +369,7 @@ function checkDirectory() { # $1: dirpath
         return 1
     fi
         
-    local foundpkgs=$(find "$dirpath" -not -ipath '*.mpkg/*' -and \( -iname '*.pkg' -or -iname '*.mpkg' \) -print0 )
+    local foundpkgs=$(find "$dirpath" -not \( -ipath '*.mpkg/*' -or -iname '._*' \) -and \( -iname '*.pkg' -or -iname '*.mpkg' \) -print0 )
     local pkglist=( ${(0)foundpkgs} )
     # find all pkg and mpkgs in the directory, excluding component pkgs in mpkgs
     for x in $pkglist ; do
